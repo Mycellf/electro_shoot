@@ -1,3 +1,7 @@
+use macroquad::{
+    color::Color,
+    shapes::{self, DrawRectangleParams},
+};
 use nalgebra::{Isometry2, UnitComplex, Vector2, vector};
 
 pub struct BoundingCircle {
@@ -66,6 +70,36 @@ impl Shape {
                 Shape::Circle { radius } => *radius,
                 Shape::Rectangle { half_size } => half_size.magnitude(),
             },
+        }
+    }
+
+    pub fn draw_outline(&self, position: Isometry2<f64>, thickness: f64, color: Color) {
+        match self {
+            Shape::Point => shapes::draw_circle(
+                position.translation.x as f32,
+                position.translation.y as f32,
+                thickness as f32 / 2.0,
+                color,
+            ),
+            Shape::Circle { radius } => shapes::draw_circle_lines(
+                position.translation.x as f32,
+                position.translation.y as f32,
+                (*radius - thickness) as f32,
+                thickness as f32,
+                color,
+            ),
+            Shape::Rectangle { half_size } => shapes::draw_rectangle_lines_ex(
+                position.translation.x as f32,
+                position.translation.y as f32,
+                half_size.x as f32 * 2.0,
+                half_size.y as f32 * 2.0,
+                thickness as f32,
+                DrawRectangleParams {
+                    offset: [0.5; 2].into(),
+                    rotation: position.rotation.angle() as f32,
+                    color,
+                },
+            ),
         }
     }
 }
