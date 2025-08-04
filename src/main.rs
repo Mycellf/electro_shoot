@@ -1,4 +1,7 @@
+pub mod enemy;
+pub mod game;
 pub mod object;
+pub mod projectile;
 pub mod shape;
 pub mod utils;
 
