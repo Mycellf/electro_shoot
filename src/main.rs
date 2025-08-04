@@ -53,17 +53,29 @@ async fn main() {
 
         utils::update_camera_aspect_ratio(&mut camera);
 
+        position_b.translation.vector = utils::mouse_position(&camera);
+
         let scroll = input::mouse_wheel().1.clamp(-1.0, 1.0) as f64;
         if scroll != 0.0 {
-            position_b.append_rotation_mut(&UnitComplex::new(scroll * 0.005 * TAU));
+            position_b.append_rotation_wrt_center_mut(&UnitComplex::new(scroll * 0.005 * TAU));
         }
-
-        position_b.translation.vector = utils::mouse_position(&camera);
 
         camera::set_camera(&camera);
 
-        let color = if shape_a.is_colliding(&shape_b, position_a.inverse() * position_b) {
+        let offset = position_a.inverse() * position_b;
+
+        let color = if shape_a.is_colliding(&shape_b, offset) {
             colors::RED
+        } else if shape_a
+            .bounding_circle()
+            .is_colliding(&shape_b.bounding_circle(), offset.translation.vector)
+        {
+            colors::BLUE
+        } else if shape_a
+            .bounding_circle()
+            .are_bounding_squares_colliding(&shape_b.bounding_circle(), offset.translation.vector)
+        {
+            colors::DARKBLUE
         } else {
             colors::GREEN
         };
