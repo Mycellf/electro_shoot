@@ -60,10 +60,10 @@ impl Deref for TextureEntry {
 
 pub static TEXTURES: LazyLock<[TextureEntry; 5]> = LazyLock::new(|| {
     [
-        TextureEntry::from_bytes(include_bytes!("../assets/red_circle.png")).unwrap(),
-        TextureEntry::from_bytes(include_bytes!("../assets/purple_circle.png")).unwrap(),
-        TextureEntry::from_bytes(include_bytes!("../assets/electric_circle.png")).unwrap(),
-        TextureEntry::from_bytes(include_bytes!("../assets/red_square.png")).unwrap(),
-        TextureEntry::from_bytes(include_bytes!("../assets/purple_square.png")).unwrap(),
+        TextureEntry::from_bytes(include_bytes!("../assets/enemies/red_circle.png")).unwrap(),
+        TextureEntry::from_bytes(include_bytes!("../assets/enemies/purple_circle.png")).unwrap(),
+        TextureEntry::from_bytes(include_bytes!("../assets/enemies/electric_circle.png")).unwrap(),
+        TextureEntry::from_bytes(include_bytes!("../assets/enemies/red_square.png")).unwrap(),
+        TextureEntry::from_bytes(include_bytes!("../assets/enemies/purple_square.png")).unwrap(),
     ]
 });
