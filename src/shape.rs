@@ -18,6 +18,7 @@ pub enum Shape {
 
 impl Shape {
     /// `offset` is the transformation from `self` to `other`
+    #[must_use]
     pub fn is_colliding(&self, other: &Self, offset: Isometry2<f64>) -> bool {
         match (self, other) {
             (Shape::Point, Shape::Point) => false,
