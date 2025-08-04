@@ -39,9 +39,7 @@ async fn main() {
 
     let position_a = Isometry2::new(vector![1.0, -1.5], 0.1 * TAU);
 
-    let shape_b = Shape::Rectangle {
-        half_size: vector![3.5, 0.5],
-    };
+    let shape_b = Shape::Point;
 
     let mut position_b = Isometry2::new(vector![0.0, 0.0], 0.0);
 
@@ -71,11 +69,6 @@ async fn main() {
             .is_colliding(&shape_b.bounding_circle(), offset.translation.vector)
         {
             colors::BLUE
-        } else if shape_a
-            .bounding_circle()
-            .are_bounding_squares_colliding(&shape_b.bounding_circle(), offset.translation.vector)
-        {
-            colors::DARKBLUE
         } else {
             colors::GREEN
         };

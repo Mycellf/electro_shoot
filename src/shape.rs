@@ -9,10 +9,6 @@ pub struct BoundingCircle {
 }
 
 impl BoundingCircle {
-    pub fn are_bounding_squares_colliding(&self, other: &Self, offset: Vector2<f64>) -> bool {
-        offset.x.abs() <= self.radius + other.radius && offset.y.abs() <= self.radius + other.radius
-    }
-
     pub fn is_colliding(&self, other: &Self, offset: Vector2<f64>) -> bool {
         circle_circle(self.radius, other.radius, offset)
     }
