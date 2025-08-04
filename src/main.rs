@@ -62,15 +62,16 @@ async fn main() {
 
         let offset = position_a.inverse() * position_b;
 
-        let color = if shape_a.is_colliding(&shape_b, offset) {
-            colors::RED
-        } else if shape_a
+        let maybe_colliding = shape_a
             .bounding_circle()
-            .is_colliding(&shape_b.bounding_circle(), offset.translation.vector)
-        {
-            colors::BLUE
-        } else {
-            colors::GREEN
+            .is_colliding(&shape_b.bounding_circle(), offset.translation.vector);
+        let colliding = shape_a.is_colliding(&shape_b, offset);
+
+        let color = match (maybe_colliding, colliding) {
+            (true, true) => colors::RED,
+            (true, false) => colors::BLUE,
+            (false, true) => colors::MAGENTA, // should be unreachable
+            (false, false) => colors::GREEN,
         };
 
         shape_a.draw_outline(position_a, 0.1, color);
