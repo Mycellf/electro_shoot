@@ -9,6 +9,42 @@ use slotmap::HopSlotMap;
 
 use crate::{enemy::Enemy, game::EnemyKey, object::Object, shape::Shape};
 
+pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
+    ProjectileKind {
+        name: "Classic",
+        properties: ProjectileProperties {
+            size: vector![0.8, 0.2],
+            damage: 4,
+            piercing: true,
+            speed: 5.0,
+            subticks: 2,
+        },
+        firing_delay: 1.0,
+    },
+    ProjectileKind {
+        name: "Rapid",
+        properties: ProjectileProperties {
+            size: vector![0.2, 0.2],
+            damage: 2,
+            piercing: false,
+            speed: 10.0,
+            subticks: 4,
+        },
+        firing_delay: 1.0 / 3.0,
+    },
+    ProjectileKind {
+        name: "Slow",
+        properties: ProjectileProperties {
+            size: vector![0.4, 0.4],
+            damage: 8,
+            piercing: true,
+            speed: 2.5,
+            subticks: 1,
+        },
+        firing_delay: 5.0 / 3.0,
+    },
+];
+
 #[derive(Clone, Debug)]
 pub struct Projectile {
     pub object: Object,
@@ -19,6 +55,14 @@ pub struct Projectile {
     pub enemies_hit: Vec<EnemyKey>,
     pub time_since_collision: f64,
     pub time_since_exit: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProjectileKind {
+    pub name: &'static str,
+    pub properties: ProjectileProperties,
+
+    pub firing_delay: f64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -45,17 +89,17 @@ impl Projectile {
 
     pub const MIMIMUM_COLLISION_TIME: f64 = 0.5;
 
-    pub fn new(position: Isometry2<f64>, properties: ProjectileProperties) -> Self {
+    pub fn new(position: Isometry2<f64>, kind: &ProjectileKind) -> Self {
         Self {
             object: Object {
                 shape: Shape::Rectangle {
-                    half_size: [properties.size.y / 2.0; 2].into(),
+                    half_size: [kind.properties.size.y / 2.0; 2].into(),
                 },
                 position,
                 linear_velocity: [0.0; 2].into(), // managed each tick
                 angular_velocity: 0.0,
             },
-            properties,
+            properties: kind.properties,
             enemies_intersecting: Vec::new(),
             enemies_hit: Vec::new(),
             time_since_collision: f64::INFINITY,

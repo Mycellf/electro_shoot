@@ -17,7 +17,7 @@ use nalgebra::{Isometry2, vector};
 use crate::{
     enemy::{Enemy, EnemyProperties},
     game::Game,
-    projectile::{Projectile, ProjectileProperties},
+    projectile::{PROJECTILE_KINDS, Projectile},
     shape::Shape,
 };
 
@@ -45,24 +45,12 @@ async fn main() {
 
     game.projectiles.insert(Projectile::new(
         Isometry2::new(vector![0.0, 0.0], 0.0),
-        ProjectileProperties {
-            size: vector![0.2, 0.2],
-            damage: 2,
-            piercing: false,
-            speed: 10.0,
-            subticks: 4,
-        },
+        &PROJECTILE_KINDS[1],
     ));
 
     game.projectiles.insert(Projectile::new(
         Isometry2::new(vector![-10.0, 0.0], 0.0),
-        ProjectileProperties {
-            size: vector![0.2, 0.2],
-            damage: 2,
-            piercing: false,
-            speed: 10.0,
-            subticks: 4,
-        },
+        &PROJECTILE_KINDS[1],
     ));
 
     game.enemies.insert(Enemy::new(
