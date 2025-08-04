@@ -4,16 +4,7 @@ use macroquad::{
 };
 use nalgebra::{Isometry2, UnitComplex, Vector2, vector};
 
-pub struct BoundingCircle {
-    radius: f64,
-}
-
-impl BoundingCircle {
-    pub fn is_colliding(&self, other: &Self, offset: Vector2<f64>) -> bool {
-        circle_circle(self.radius, other.radius, offset)
-    }
-}
-
+#[derive(Clone, Copy, Debug)]
 pub enum Shape {
     /// Points will never be marked as colliding with each other
     Point,
@@ -56,16 +47,6 @@ impl Shape {
             (Shape::Rectangle { half_size: size_a }, Shape::Rectangle { half_size: size_b }) => {
                 rectangle_rectangle(*size_a, *size_b, offset)
             }
-        }
-    }
-
-    pub fn bounding_circle(&self) -> BoundingCircle {
-        BoundingCircle {
-            radius: match self {
-                Shape::Point => 0.0,
-                Shape::Circle { radius } => *radius,
-                Shape::Rectangle { half_size } => half_size.magnitude(),
-            },
         }
     }
 
