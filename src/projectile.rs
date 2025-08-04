@@ -4,7 +4,7 @@ use macroquad::{
     color::Color,
     shapes::{self, DrawRectangleParams},
 };
-use nalgebra::{Isometry2, Vector2, point, vector};
+use nalgebra::{Isometry2, UnitComplex, Vector2, point, vector};
 use slotmap::HopSlotMap;
 
 use crate::{enemy::Enemy, game::EnemyKey, object::Object, shape::Shape};
@@ -48,6 +48,7 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
 #[derive(Clone, Debug)]
 pub struct Projectile {
     pub object: Object,
+    pub direction: UnitComplex<f64>,
 
     pub properties: ProjectileProperties,
 
@@ -99,6 +100,7 @@ impl Projectile {
                 linear_velocity: [0.0; 2].into(), // managed each tick
                 angular_velocity: 0.0,
             },
+            direction: position.rotation,
             properties: kind.properties,
             enemies_intersecting: Vec::new(),
             enemies_hit: Vec::new(),
@@ -155,7 +157,7 @@ impl Projectile {
             self.properties.speed * Self::COLLISION_SPEED_MULTIPLIER
         };
 
-        self.object.linear_velocity = self.object.position * vector![speed, 0.0];
+        self.object.linear_velocity = self.direction * vector![speed, 0.0];
 
         self.object.tick(dt);
 
