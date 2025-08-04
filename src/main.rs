@@ -1,3 +1,5 @@
+pub mod shape;
+
 use macroquad::{
     input::{self, KeyCode},
     window::{self, Conf},
