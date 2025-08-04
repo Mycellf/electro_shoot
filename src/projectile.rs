@@ -17,6 +17,7 @@ pub struct Projectile {
 
     pub enemies_intersecting: Vec<EnemyKey>,
     pub time_since_collision: f64,
+    pub time_since_exit: f64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -41,6 +42,8 @@ impl Projectile {
     pub const COLLISION_SPEED_MULTIPLIER: f64 = 0.25;
     pub const COLLISION_OPACITY_MULTIPLIER: f64 = 0.75;
 
+    pub const MIMIMUM_COLLISION_TIME: f64 = 0.5;
+
     pub fn new(position: Isometry2<f64>, properties: ProjectileProperties) -> Self {
         Self {
             object: Object {
@@ -54,6 +57,7 @@ impl Projectile {
             properties,
             enemies_intersecting: Vec::new(),
             time_since_collision: f64::INFINITY,
+            time_since_exit: f64::INFINITY,
         }
     }
 
@@ -109,24 +113,30 @@ impl Projectile {
 
         self.object.tick(dt);
 
+        self.time_since_collision += dt;
+
         for (key, enemy) in &mut *enemies {
             if self.object.is_colliding(&enemy.object) && !self.enemies_intersecting.contains(&key)
             {
                 enemy.hit(self.properties.damage);
                 self.enemies_intersecting.push(key);
+                self.time_since_collision = 0.0;
             }
         }
 
         self.enemies_intersecting.retain(|&key| {
             enemies.get(key).is_some_and(|enemy| {
-                !enemy.should_delete() && self.object.is_colliding(&enemy.object)
+                !enemy.should_delete()
+                    && (self.object.is_colliding(&enemy.object)
+                        || self.time_since_collision
+                            < Self::MIMIMUM_COLLISION_TIME / self.properties.speed)
             })
         });
 
         if self.enemies_intersecting.is_empty() {
-            self.time_since_collision += dt;
+            self.time_since_exit += dt;
         } else {
-            self.time_since_collision = 0.0;
+            self.time_since_exit = 0.0;
         }
     }
 }

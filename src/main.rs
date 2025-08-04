@@ -15,14 +15,13 @@ use macroquad::{
 use nalgebra::{Isometry2, vector};
 
 use crate::{
-    enemy::Enemy,
+    enemy::{Enemy, EnemyProperties},
     game::Game,
-    object::Object,
     projectile::{Projectile, ProjectileProperties},
     shape::Shape,
 };
 
-const START_IN_FULLSCREEN: bool = false;
+const START_IN_FULLSCREEN: bool = true;
 
 fn config() -> Conf {
     Conf {
@@ -66,18 +65,17 @@ async fn main() {
         },
     ));
 
-    game.enemies.insert(Enemy {
-        object: Object {
+    game.enemies.insert(Enemy::new(
+        Isometry2::new(vector![5.0, 0.0], 0.5 * TAU),
+        EnemyProperties {
             shape: Shape::Rectangle {
-                half_size: vector![0.6, 0.6],
+                half_size: vector![0.8, 0.8],
             },
-            position: Isometry2::new(vector![5.0, 0.0], 0.0),
-            linear_velocity: vector![-1.0, 0.0],
+            speed: 1.0,
             angular_velocity: 0.25 * TAU,
+            maximum_health: 12,
         },
-        health: 8,
-        time_since_hit: f64::INFINITY,
-    });
+    ));
 
     loop {
         if input::is_key_pressed(KeyCode::F11) {
