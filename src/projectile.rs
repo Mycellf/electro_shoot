@@ -16,6 +16,7 @@ pub struct Projectile {
     pub properties: ProjectileProperties,
 
     pub enemies_intersecting: Vec<EnemyKey>,
+    pub enemies_hit: Vec<EnemyKey>,
     pub time_since_collision: f64,
     pub time_since_exit: f64,
 }
@@ -56,6 +57,7 @@ impl Projectile {
             },
             properties,
             enemies_intersecting: Vec::new(),
+            enemies_hit: Vec::new(),
             time_since_collision: f64::INFINITY,
             time_since_exit: f64::INFINITY,
         }
@@ -99,7 +101,7 @@ impl Projectile {
     }
 
     pub fn should_delete(&self) -> bool {
-        !(self.properties.piercing || self.enemies_intersecting.is_empty())
+        !(self.properties.piercing || self.enemies_hit.is_empty())
     }
 
     pub fn subtick(&mut self, enemies: &mut HopSlotMap<EnemyKey, Enemy>, dt: f64) {
@@ -120,6 +122,7 @@ impl Projectile {
             {
                 enemy.hit(self.properties.damage);
                 self.enemies_intersecting.push(key);
+                self.enemies_hit.push(key);
                 self.time_since_collision = 0.0;
             }
         }

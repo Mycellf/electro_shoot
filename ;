@@ -48,18 +48,18 @@ async fn main() {
         ProjectileProperties {
             size: vector![0.2, 0.2],
             damage: 2,
-            piercing: false,
+            piercing: true,
             speed: 10.0,
             subticks: 4,
         },
     ));
 
     game.projectiles.insert(Projectile::new(
-        Isometry2::new(vector![-10.0, 0.0], 0.0),
+        Isometry2::new(vector![0.0, 0.0], 0.0),
         ProjectileProperties {
             size: vector![0.2, 0.2],
             damage: 2,
-            piercing: false,
+            piercing: true,
             speed: 10.0,
             subticks: 4,
         },
