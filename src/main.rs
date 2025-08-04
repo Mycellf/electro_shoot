@@ -15,10 +15,9 @@ use macroquad::{
 use nalgebra::{Isometry2, vector};
 
 use crate::{
-    enemy::{Enemy, EnemyProperties},
+    enemy::{ENEMY_KINDS, Enemy},
     game::Game,
     projectile::{PROJECTILE_KINDS, Projectile},
-    shape::Shape,
 };
 
 const START_IN_FULLSCREEN: bool = true;
@@ -44,23 +43,18 @@ async fn main() {
     let mut game = Game::default();
 
     game.projectiles.insert(Projectile::new(
-        Isometry2::new(vector![0.0, 0.0], 0.0),
-        &PROJECTILE_KINDS[1],
+        Isometry2::new(vector![-20.0, 0.0], 0.0),
+        &PROJECTILE_KINDS[0],
     ));
 
     game.projectiles.insert(Projectile::new(
-        Isometry2::new(vector![-10.0, 0.0], 0.0),
-        &PROJECTILE_KINDS[1],
+        Isometry2::new(vector![-30.0, 0.0], 0.0),
+        &PROJECTILE_KINDS[0],
     ));
 
     game.enemies.insert(Enemy::new(
-        Isometry2::new(vector![5.0, 0.0], 0.5 * TAU),
-        EnemyProperties {
-            shape: Shape::Circle { radius: 0.5 },
-            speed: 1.0,
-            angular_velocity: 0.25 * TAU,
-            maximum_health: 4,
-        },
+        Isometry2::new(vector![25.0, 0.0], 0.5 * TAU),
+        &ENEMY_KINDS[3],
     ));
 
     loop {

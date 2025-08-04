@@ -1,8 +1,63 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    f64::consts::TAU,
+    ops::{Deref, DerefMut},
+};
 
 use nalgebra::{Isometry2, UnitComplex, vector};
 
 use crate::{object::Object, shape::Shape};
+
+pub static ENEMY_KINDS: [EnemyKind; 5] = [
+    EnemyKind {
+        name: "Red Circle",
+        properties: EnemyProperties {
+            shape: Shape::Circle { radius: 0.5 },
+            speed: 3.0,
+            angular_velocity: 0.0,
+            maximum_health: 4,
+        },
+    },
+    EnemyKind {
+        name: "Purple Circle",
+        properties: EnemyProperties {
+            shape: Shape::Circle { radius: 0.5 },
+            speed: 9.0,
+            angular_velocity: 0.0,
+            maximum_health: 4,
+        },
+    },
+    EnemyKind {
+        name: "Electric Circle",
+        properties: EnemyProperties {
+            shape: Shape::Circle { radius: 0.6 },
+            speed: 12.0,
+            angular_velocity: 0.0,
+            maximum_health: 4,
+        },
+    },
+    EnemyKind {
+        name: "Red Square",
+        properties: EnemyProperties {
+            shape: Shape::Rectangle {
+                half_size: vector![0.6, 0.6],
+            },
+            speed: 3.0,
+            angular_velocity: -5.0 / 24.0 * TAU,
+            maximum_health: 8,
+        },
+    },
+    EnemyKind {
+        name: "Purple Square",
+        properties: EnemyProperties {
+            shape: Shape::Rectangle {
+                half_size: vector![0.8, 0.8],
+            },
+            speed: 3.0,
+            angular_velocity: 1.0 / 6.0 * TAU,
+            maximum_health: 12,
+        },
+    },
+];
 
 #[derive(Clone, Debug)]
 pub struct Enemy {
@@ -13,6 +68,12 @@ pub struct Enemy {
 
     pub health: u32,
     pub time_since_hit: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct EnemyKind {
+    pub name: &'static str,
+    pub properties: EnemyProperties,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -28,17 +89,17 @@ pub struct EnemyProperties {
 impl Enemy {
     pub const SLOWDOWN_TIME: f64 = 1.0 / 3.0;
 
-    pub fn new(position: Isometry2<f64>, properties: EnemyProperties) -> Self {
+    pub fn new(position: Isometry2<f64>, kind: &EnemyKind) -> Self {
         Self {
             object: Object {
-                shape: properties.shape,
+                shape: kind.properties.shape,
                 position,
-                linear_velocity: position.rotation * vector![properties.speed, 0.0],
-                angular_velocity: properties.angular_velocity,
+                linear_velocity: position.rotation * vector![kind.properties.speed, 0.0],
+                angular_velocity: kind.properties.angular_velocity,
             },
             direction: position.rotation,
-            properties,
-            health: properties.maximum_health,
+            properties: kind.properties,
+            health: kind.properties.maximum_health,
             time_since_hit: f64::INFINITY,
         }
     }
