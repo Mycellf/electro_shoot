@@ -4,7 +4,7 @@ use macroquad::{
     color::Color,
     shapes::{self, DrawRectangleParams},
 };
-use nalgebra::{Isometry2, UnitComplex, Vector2, point, vector};
+use nalgebra::{Isometry2, UnitComplex, Vector2, vector};
 use slotmap::HopSlotMap;
 
 use crate::{enemy::Enemy, game::EnemyKey, object::Object, shape::Shape};
@@ -17,7 +17,6 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             damage: 4,
             piercing: true,
             speed: 15.0,
-            subticks: 2,
         },
         firing_delay: 1.0,
     },
@@ -28,7 +27,6 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             damage: 2,
             piercing: false,
             speed: 30.0,
-            subticks: 4,
         },
         firing_delay: 1.0 / 3.0,
     },
@@ -39,7 +37,6 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             damage: 8,
             piercing: true,
             speed: 7.5,
-            subticks: 1,
         },
         firing_delay: 5.0 / 3.0,
     },
@@ -52,6 +49,7 @@ pub struct Projectile {
 
     pub properties: ProjectileProperties,
 
+    pub enemies_colliding: Vec<EnemyKey>,
     pub enemies_intersecting: Vec<EnemyKey>,
     pub enemies_hit: Vec<EnemyKey>,
     pub time_since_collision: f64,
@@ -73,28 +71,24 @@ pub struct ProjectileProperties {
     pub piercing: bool,
 
     pub speed: f64,
-
-    pub subticks: usize,
 }
 
 impl ProjectileProperties {
     pub fn distance_to_front(&self) -> f64 {
-        self.size.y / 2.0
+        self.size.x / 2.0
     }
 }
 
 impl Projectile {
     pub const COLOR: Color = Color::from_hex(0x00ffff);
     pub const COLLISION_SPEED_MULTIPLIER: f64 = 0.25;
-    pub const COLLISION_OPACITY_MULTIPLIER: f64 = 0.75;
-
-    pub const MIMIMUM_COLLISION_TIME: f64 = 0.5;
+    pub const COLLISION_OPACITY: f64 = 0.75;
 
     pub fn new(position: Isometry2<f64>, kind: &ProjectileKind) -> Self {
         Self {
             object: Object {
                 shape: Shape::Rectangle {
-                    half_size: [kind.properties.size.y / 2.0; 2].into(),
+                    half_size: kind.properties.size / 2.0,
                 },
                 position,
                 linear_velocity: [0.0; 2].into(), // managed each tick
@@ -102,6 +96,7 @@ impl Projectile {
             },
             direction: position.rotation,
             properties: kind.properties,
+            enemies_colliding: Vec::new(),
             enemies_intersecting: Vec::new(),
             enemies_hit: Vec::new(),
             time_since_collision: f64::INFINITY,
@@ -110,48 +105,11 @@ impl Projectile {
     }
 
     pub fn tick(&mut self, enemies: &mut HopSlotMap<EnemyKey, Enemy>, dt: f64) {
-        let subtick_dt = dt / self.properties.subticks as f64;
-
-        for _ in 0..self.properties.subticks {
-            if self.should_delete() {
-                return;
-            }
-
-            self.subtick(enemies, subtick_dt);
+        if self.should_delete() {
+            return;
         }
-    }
 
-    pub fn draw(&self) {
-        let position = self.position * point![self.properties.distance_to_front(), 0.0];
-
-        let opacity = if self.enemies_intersecting.is_empty() {
-            1.0
-        } else {
-            Self::COLLISION_OPACITY_MULTIPLIER
-        };
-
-        shapes::draw_rectangle_ex(
-            position.x as f32,
-            position.y as f32,
-            self.properties.size.x as f32,
-            self.properties.size.y as f32,
-            DrawRectangleParams {
-                offset: [1.0, 0.5].into(),
-                rotation: self.position.rotation.angle() as f32,
-                color: Color {
-                    a: opacity as f32,
-                    ..Self::COLOR
-                },
-            },
-        );
-    }
-
-    pub fn should_delete(&self) -> bool {
-        !(self.properties.piercing || self.enemies_hit.is_empty())
-    }
-
-    pub fn subtick(&mut self, enemies: &mut HopSlotMap<EnemyKey, Enemy>, dt: f64) {
-        let speed = if self.enemies_intersecting.is_empty() {
+        let speed = if self.enemies_colliding.is_empty() {
             self.properties.speed
         } else {
             self.properties.speed * Self::COLLISION_SPEED_MULTIPLIER
@@ -164,29 +122,70 @@ impl Projectile {
         self.time_since_collision += dt;
 
         for (key, enemy) in &mut *enemies {
-            if self.object.is_colliding(&enemy.object) && !self.enemies_intersecting.contains(&key)
+            if !self.enemies_intersecting.contains(&key) && self.object.is_colliding(&enemy.object)
             {
                 enemy.hit(self.properties.damage);
-                self.enemies_intersecting.push(key);
+                if !enemy.should_delete() {
+                    self.enemies_colliding.push(key);
+                    self.enemies_intersecting.push(key);
+                }
                 self.enemies_hit.push(key);
                 self.time_since_collision = 0.0;
             }
         }
 
-        self.enemies_intersecting.retain(|&key| {
+        self.enemies_colliding.retain(|&key| {
             enemies.get(key).is_some_and(|enemy| {
                 !enemy.should_delete()
-                    && (self.object.is_colliding(&enemy.object)
-                        || self.time_since_collision
-                            < Self::MIMIMUM_COLLISION_TIME / self.properties.speed)
+                    && self.object.shape.is_colliding(
+                        &enemy.shape,
+                        self.object.offset_to(&enemy)
+                            * Isometry2::new(
+                                -vector![self.properties.distance_to_front() * 2.0, 0.0],
+                                0.0,
+                            ),
+                    )
             })
         });
 
-        if self.enemies_intersecting.is_empty() {
+        self.enemies_intersecting.retain(|&key| {
+            enemies
+                .get(key)
+                .is_some_and(|enemy| !enemy.should_delete() && self.object.is_colliding(&enemy))
+        });
+
+        if self.enemies_colliding.is_empty() {
             self.time_since_exit += dt;
         } else {
             self.time_since_exit = 0.0;
         }
+    }
+
+    pub fn draw(&self) {
+        let opacity = if self.enemies_intersecting.is_empty() {
+            1.0
+        } else {
+            Self::COLLISION_OPACITY
+        };
+
+        shapes::draw_rectangle_ex(
+            self.position.translation.x as f32,
+            self.position.translation.y as f32,
+            self.properties.size.x as f32,
+            self.properties.size.y as f32,
+            DrawRectangleParams {
+                offset: [0.5, 0.5].into(),
+                rotation: self.position.rotation.angle() as f32,
+                color: Color {
+                    a: opacity as f32,
+                    ..Self::COLOR
+                },
+            },
+        );
+    }
+
+    pub fn should_delete(&self) -> bool {
+        !(self.properties.piercing || self.enemies_hit.is_empty())
     }
 }
 

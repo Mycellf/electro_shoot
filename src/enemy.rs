@@ -168,6 +168,7 @@ impl Enemy {
     pub fn hit(&mut self, damage: u32) {
         self.health = self.health.saturating_sub(damage);
         self.time_since_hit = 0.0;
+        self.brightness_update_time = 1.0;
     }
 
     pub fn should_delete(&self) -> bool {
