@@ -9,6 +9,7 @@ use nalgebra::{Point2, Vector2};
 
 use crate::{object::Transform, utils};
 
+#[derive(Clone, Debug)]
 pub struct Particle {
     pub transform: Transform,
 
@@ -36,7 +37,10 @@ impl Particle {
             &self.texture,
             (self.position.translation.x - size.x / 2.0) as f32,
             (self.position.translation.y - size.y / 2.0) as f32,
-            self.color,
+            Color {
+                a: (1.0 - self.time_since_creation / self.maximum_lifetime) as f32,
+                ..self.color
+            },
             DrawTextureParams {
                 dest_size: Some(utils::vector2_f64_to_vec2(size)),
                 source: self.start.map(|start| Rect {

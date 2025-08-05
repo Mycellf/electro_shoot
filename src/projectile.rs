@@ -1,17 +1,22 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    f64::consts::TAU,
+    ops::{Deref, DerefMut},
+};
 
 use macroquad::{
     color::Color,
     shapes::{self, DrawRectangleParams},
 };
-use nalgebra::{Isometry2, UnitComplex, Vector2, vector};
+use nalgebra::{Isometry2, UnitComplex, Vector2, point, vector};
 use slotmap::HopSlotMap;
 
 use crate::{
     enemy::Enemy,
-    game::EnemyKey,
+    game::{EnemyKey, ParticleKey},
     object::{Object, Transform},
+    particle::Particle,
     shape::Shape,
+    utils::{self, GLITTER_TEXTURES},
 };
 
 pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
@@ -22,6 +27,7 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             damage: 4,
             piercing: true,
             speed: 15.0,
+            particle_distance: 1.0,
         },
         shoot_cooldown: 1.0,
     },
@@ -32,6 +38,7 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             damage: 2,
             piercing: false,
             speed: 30.0,
+            particle_distance: 3.0,
         },
         shoot_cooldown: 1.0 / 3.0,
     },
@@ -41,7 +48,8 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             size: vector![0.4, 0.4],
             damage: 8,
             piercing: true,
-            speed: 7.5,
+            speed: 6.0,
+            particle_distance: 0.8,
         },
         shoot_cooldown: 5.0 / 3.0,
     },
@@ -59,6 +67,8 @@ pub struct Projectile {
     pub enemies_hit: Vec<EnemyKey>,
     pub time_since_collision: f64,
     pub time_since_exit: f64,
+
+    pub distance_since_particle: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -76,10 +86,15 @@ pub struct ProjectileProperties {
     pub piercing: bool,
 
     pub speed: f64,
+    pub particle_distance: f64,
 }
 
 impl ProjectileProperties {
     pub fn distance_to_front(&self) -> f64 {
+        self.size.x / 2.0
+    }
+
+    pub fn distance_to_back(&self) -> f64 {
         self.size.x / 2.0
     }
 }
@@ -108,14 +123,24 @@ impl Projectile {
             enemies_hit: Vec::new(),
             time_since_collision: f64::INFINITY,
             time_since_exit: f64::INFINITY,
+            distance_since_particle: macroquad::rand::gen_range(
+                0.0,
+                kind.properties.particle_distance,
+            ),
         }
     }
 
-    pub fn tick(&mut self, enemies: &mut HopSlotMap<EnemyKey, Enemy>, dt: f64) {
+    pub fn tick(
+        &mut self,
+        enemies: &mut HopSlotMap<EnemyKey, Enemy>,
+        particles: &mut HopSlotMap<ParticleKey, Particle>,
+        dt: f64,
+    ) {
         if self.should_delete() {
             return;
         }
 
+        // Motion
         let speed = if self.enemies_colliding.is_empty() {
             self.properties.speed
         } else {
@@ -126,6 +151,38 @@ impl Projectile {
 
         self.object.tick(dt);
 
+        // Particles
+        self.distance_since_particle += speed * dt;
+        while self.distance_since_particle >= self.properties.particle_distance {
+            self.distance_since_particle -= self.properties.particle_distance;
+
+            let translation = self.position
+                * point![
+                    -self.properties.distance_to_back() - self.distance_since_particle + 0.1,
+                    0.0
+                ];
+
+            let rotation = self.position.rotation
+                * UnitComplex::new(macroquad::rand::gen_range(0, 3) as f64 / 4.0 * TAU);
+
+            particles.insert(Particle {
+                transform: Transform {
+                    position: Isometry2::from_parts(translation.into(), rotation),
+                    linear_velocity: vector![0.0, 0.0],
+                    angular_velocity: 0.0,
+                },
+                color: Color::from_hex(0x00ffff),
+                time_since_creation: 0.0,
+                maximum_lifetime: 2.0 / 3.0,
+                texture: GLITTER_TEXTURES[macroquad::rand::gen_range(0, GLITTER_TEXTURES.len())]
+                    .texture
+                    .clone(),
+                start: None,
+                size: vector![2, 2],
+            });
+        }
+
+        // Collisions
         self.time_since_collision += dt;
 
         for (key, enemy) in &mut *enemies {
@@ -148,7 +205,11 @@ impl Projectile {
                     && self.object.shape.is_colliding(
                         &enemy.shape,
                         Isometry2::new(
-                            -vector![self.properties.distance_to_front() * 2.0, 0.0],
+                            -vector![
+                                self.properties.distance_to_front()
+                                    + self.properties.distance_to_back(),
+                                0.0
+                            ],
                             0.0,
                         ) * self.object.offset_to(&enemy),
                     )
@@ -185,7 +246,7 @@ impl Projectile {
                 rotation: self.position.rotation.angle() as f32,
                 color: Color {
                     a: opacity as f32,
-                    ..Self::COLOR
+                    ..utils::brighten_color(Self::COLOR, 1.0 - opacity)
                 },
             },
         );

@@ -184,7 +184,7 @@ impl Turret {
 
         let translation = self.position
             * point![
-                Self::BARREL_LENGTH + self.projectile_kind.properties.distance_to_front(),
+                Self::BARREL_LENGTH + self.projectile_kind.properties.distance_to_back(),
                 0.0
             ];
         let position = Isometry2::from_parts(translation.into(), self.position.rotation);

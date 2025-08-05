@@ -1,23 +1,29 @@
 use macroquad::camera::Camera2D;
 use slotmap::{HopSlotMap, new_key_type};
 
-use crate::{enemy::Enemy, projectile::Projectile, turret::Turret, utils};
+use crate::{enemy::Enemy, particle::Particle, projectile::Projectile, turret::Turret, utils};
 
 #[derive(Debug, Default)]
 pub struct Game {
     pub enemies: HopSlotMap<EnemyKey, Enemy>,
     pub projectiles: HopSlotMap<ProjectileKey, Projectile>,
+    pub particles: HopSlotMap<ParticleKey, Particle>,
     pub turret: Turret,
 }
 
 new_key_type! {
     pub struct EnemyKey;
     pub struct ProjectileKey;
+    pub struct ParticleKey;
 }
 
 impl Game {
     pub fn draw(&self) {
         self.turret.draw();
+
+        for (_, particle) in &self.particles {
+            particle.draw();
+        }
 
         for (_, enemy) in &self.enemies {
             enemy.draw();
@@ -39,7 +45,7 @@ impl Game {
         let camera_bounds = utils::bounds_of_camera(camera);
 
         self.projectiles.retain(|_, projectile| {
-            projectile.tick(&mut self.enemies, dt);
+            projectile.tick(&mut self.enemies, &mut self.particles, dt);
             !projectile.should_delete()
                 && camera_bounds.is_colliding(&projectile.shape, projectile.position)
         });
@@ -47,6 +53,11 @@ impl Game {
         self.enemies.retain(|_, enemy| {
             enemy.tick(dt);
             !enemy.should_delete()
+        });
+
+        self.particles.retain(|_, particle| {
+            particle.tick(dt);
+            !particle.should_delete()
         });
     }
 }

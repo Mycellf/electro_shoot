@@ -1,11 +1,11 @@
 pub mod enemy;
 pub mod game;
 pub mod object;
+pub mod particle;
 pub mod projectile;
 pub mod shape;
 pub mod turret;
 pub mod utils;
-pub mod particle;
 
 use std::f64::consts::TAU;
 

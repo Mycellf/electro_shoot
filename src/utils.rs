@@ -131,3 +131,14 @@ pub static ENEMY_TEXTURES: LazyLock<[TextureEntry; 5]> = LazyLock::new(|| {
         TextureEntry::from_bytes(include_bytes!("../assets/enemies/purple_square.png")).unwrap(),
     ]
 });
+
+pub static GLITTER_TEXTURES: LazyLock<[TextureEntry; 2]> = LazyLock::new(|| {
+    [
+        TextureEntry::from_bytes(include_bytes!("../assets/particles/glitter_1.png")).unwrap(),
+        TextureEntry::from_bytes(include_bytes!("../assets/particles/glitter_2.png")).unwrap(),
+    ]
+});
+
+pub static ABSORB_TEXTURE: LazyLock<TextureEntry> = LazyLock::new(|| {
+    TextureEntry::from_bytes(include_bytes!("../assets/particles/absorb.png")).unwrap()
+});
