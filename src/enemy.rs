@@ -139,7 +139,15 @@ impl Enemy {
         if self.brightness_update_time > 1.0 {
             self.brightness_update_time %= 1.0;
             let brightness = self.speed_multiplier();
-            self.brightness = macroquad::rand::gen_range(brightness, (brightness + 0.75).min(1.0));
+            self.brightness = if brightness == 1.0 {
+                1.0
+            } else if brightness > 0.5 {
+                macroquad::rand::gen_range(brightness, (brightness + 0.75).min(1.0))
+            } else if (self.brightness < 0.5) ^ (macroquad::rand::rand() & 0b11 == 0) {
+                macroquad::rand::gen_range(0.5, (brightness + 0.75).min(1.0))
+            } else {
+                macroquad::rand::gen_range(brightness, 0.5)
+            };
         }
 
         self.time_since_hit += dt;
