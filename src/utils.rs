@@ -24,6 +24,16 @@ pub fn vec2_to_point2_f64(vector: Vec2) -> Point2<f64> {
 }
 
 #[must_use]
+pub fn vector2_f64_to_vec2(vector: Vector2<f64>) -> Vec2 {
+    <[f64; 2]>::from(vector).map(|x| x as f32).into()
+}
+
+#[must_use]
+pub fn point2_f64_to_vec2(point: Point2<f64>) -> Vec2 {
+    <[f64; 2]>::from(point).map(|x| x as f32).into()
+}
+
+#[must_use]
 pub fn mouse_position(camera: &Camera2D) -> Point2<f64> {
     vec2_to_point2_f64(camera.screen_to_world(input::mouse_position().into()))
 }

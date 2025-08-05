@@ -1,9 +1,61 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::object::Transform;
+use macroquad::{
+    color::Color,
+    math::Rect,
+    texture::{self, DrawTextureParams, Texture2D},
+};
+use nalgebra::{Point2, Vector2};
+
+use crate::{object::Transform, utils};
 
 pub struct Particle {
     pub transform: Transform,
+
+    pub color: Color,
+    pub time_since_creation: f64,
+    pub maximum_lifetime: f64,
+
+    pub texture: Texture2D,
+
+    pub start: Option<Point2<usize>>,
+    pub size: Vector2<usize>,
+}
+
+impl Particle {
+    pub fn tick(&mut self, dt: f64) {
+        self.time_since_creation += dt;
+
+        self.transform.tick(dt);
+    }
+
+    pub fn draw(&self) {
+        let size = self.size.map(|x| x as f64) * 0.1;
+
+        texture::draw_texture_ex(
+            &self.texture,
+            (self.position.translation.x - size.x / 2.0) as f32,
+            (self.position.translation.y - size.y / 2.0) as f32,
+            self.color,
+            DrawTextureParams {
+                dest_size: Some(utils::vector2_f64_to_vec2(size)),
+                source: self.start.map(|start| Rect {
+                    x: start.x as f32,
+                    y: start.y as f32,
+                    w: self.size.x as f32,
+                    h: self.size.y as f32,
+                }),
+                rotation: self.position.rotation.angle() as f32,
+                flip_x: false,
+                flip_y: false,
+                pivot: None,
+            },
+        );
+    }
+
+    pub fn should_delete(&self) -> bool {
+        self.time_since_creation >= self.maximum_lifetime
+    }
 }
 
 impl Deref for Particle {
