@@ -33,11 +33,15 @@ impl Game {
     }
 
     pub fn tick(&mut self, camera: &mut Camera2D, dt: f64) {
-        self.turret.tick(utils::mouse_position(camera), dt);
+        self.turret
+            .tick(utils::mouse_position(camera), &mut self.projectiles, dt);
+
+        let camera_bounds = utils::bounds_of_camera(camera);
 
         self.projectiles.retain(|_, projectile| {
             projectile.tick(&mut self.enemies, dt);
             !projectile.should_delete()
+                && camera_bounds.is_colliding(&projectile.shape, projectile.position)
         });
 
         self.enemies.retain(|_, enemy| {

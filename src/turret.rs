@@ -5,9 +5,11 @@ use macroquad::{
     texture::{self, DrawTextureParams},
 };
 use nalgebra::{Complex, Isometry2, Point2, UnitComplex, point, vector};
+use slotmap::HopSlotMap;
 
 use crate::{
-    projectile::{PROJECTILE_KINDS, ProjectileKind},
+    game::ProjectileKey,
+    projectile::{PROJECTILE_KINDS, Projectile, ProjectileKind},
     shape::Shape,
     utils::{self, TURRET_BASE_TEXTURE},
 };
@@ -83,7 +85,12 @@ impl Turret {
     pub const BARREL_BASE_OFFSET: f64 = Self::BARREL_WIDTH / 2.0;
     pub const BARREL_SHOOT_OFFSET: f64 = 0.5;
 
-    pub fn tick(&mut self, mouse_position: Point2<f64>, dt: f64) {
+    pub fn tick(
+        &mut self,
+        mouse_position: Point2<f64>,
+        projectiles: &mut HopSlotMap<ProjectileKey, Projectile>,
+        dt: f64,
+    ) {
         let mouse_offset = mouse_position.coords - self.position.translation.vector;
 
         let mouse_direction = if mouse_offset.magnitude_squared() == 0.0 {
@@ -96,8 +103,7 @@ impl Turret {
 
         if self.input.shoot && self.can_shoot() {
             self.position.rotation = mouse_direction;
-            self.time_since_shoot = 0.0;
-            self.input.shoot = false;
+            self.shoot(projectiles);
         } else {
             self.position.rotation = (self.position.rotation)
                 .slerp(&mouse_direction, utils::exp_decay(0.0, 1.0, 20.0, dt));
@@ -170,6 +176,20 @@ impl Turret {
                 ),
             },
         )
+    }
+
+    pub fn shoot(&mut self, projectiles: &mut HopSlotMap<ProjectileKey, Projectile>) {
+        self.time_since_shoot = 0.0;
+        self.input.shoot = false;
+
+        let translation = self.position
+            * point![
+                Self::BARREL_LENGTH + self.projectile_kind.properties.distance_to_front(),
+                0.0
+            ];
+        let position = Isometry2::from_parts(translation.into(), self.position.rotation);
+
+        projectiles.insert(Projectile::new(position, &self.projectile_kind));
     }
 
     pub fn shoot_recharge_progress(&self) -> f64 {

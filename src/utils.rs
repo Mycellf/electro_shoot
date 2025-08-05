@@ -11,6 +11,8 @@ use macroquad::{
 };
 use nalgebra::{Point2, Vector2};
 
+use crate::shape::Shape;
+
 #[must_use]
 pub fn vec2_to_vector2_f64(vector: Vec2) -> Vector2<f64> {
     <[f32; 2]>::from(vector).map(f64::from).into()
@@ -28,6 +30,13 @@ pub fn mouse_position(camera: &Camera2D) -> Point2<f64> {
 
 pub fn update_camera_aspect_ratio(camera: &mut Camera2D) {
     camera.zoom.x = camera.zoom.y.abs() * window::screen_height() / window::screen_width();
+}
+
+#[must_use]
+pub fn bounds_of_camera(camera: &Camera2D) -> Shape {
+    Shape::Rectangle {
+        half_size: vec2_to_vector2_f64(1.0 / camera.zoom).abs(),
+    }
 }
 
 pub fn darken_color(color: Color, brightness: f64) -> Color {
