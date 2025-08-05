@@ -28,6 +28,8 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             piercing: true,
             speed: 15.0,
             particle_distance: 1.0,
+            hit_particle_radius: 2,
+            hit_particle_distance: 0.8,
         },
         shoot_cooldown: 1.0,
     },
@@ -39,6 +41,8 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             piercing: false,
             speed: 30.0,
             particle_distance: 3.0,
+            hit_particle_radius: 1,
+            hit_particle_distance: 0.8,
         },
         shoot_cooldown: 1.0 / 3.0,
     },
@@ -50,6 +54,8 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             piercing: true,
             speed: 6.0,
             particle_distance: 0.8,
+            hit_particle_radius: 3,
+            hit_particle_distance: 0.8 * 2.0 / 3.0,
         },
         shoot_cooldown: 5.0 / 3.0,
     },
@@ -87,6 +93,9 @@ pub struct ProjectileProperties {
 
     pub speed: f64,
     pub particle_distance: f64,
+
+    pub hit_particle_radius: usize,
+    pub hit_particle_distance: f64,
 }
 
 impl ProjectileProperties {
@@ -156,21 +165,15 @@ impl Projectile {
         while self.distance_since_particle >= self.properties.particle_distance {
             self.distance_since_particle -= self.properties.particle_distance;
 
-            let translation = self.position
-                * point![
-                    -self.properties.distance_to_back() - self.distance_since_particle + 0.1,
-                    0.0
-                ];
-
-            let rotation = self.position.rotation
-                * UnitComplex::new(macroquad::rand::gen_range(0, 3) as f64 / 4.0 * TAU);
-
             particles.insert(Particle {
                 transform: Transform {
-                    position: Isometry2::from_parts(translation.into(), rotation),
+                    position: self.position_of_particle(
+                        -self.properties.distance_to_back() - self.distance_since_particle + 0.1,
+                    ),
                     linear_velocity: vector![0.0, 0.0],
                     angular_velocity: 0.0,
                 },
+                target_position: None,
                 color: Color::from_hex(0x00ffff),
                 time_since_creation: 0.0,
                 maximum_lifetime: 2.0 / 3.0,
@@ -194,6 +197,7 @@ impl Projectile {
                     self.enemies_colliding.push(key);
                     self.enemies_intersecting.push(key);
                 }
+                self.add_hit_particles(particles);
                 self.enemies_hit.push(key);
                 self.time_since_collision = 0.0;
             }
@@ -250,6 +254,42 @@ impl Projectile {
                 },
             },
         );
+    }
+
+    pub fn add_hit_particles(&self, particles: &mut HopSlotMap<ParticleKey, Particle>) {
+        let start_position = self.position_of_particle(self.properties.distance_to_front() - 0.1);
+
+        for target_position in (1..self.properties.hit_particle_radius + 1)
+            .map(|x| x as f64 * self.properties.hit_particle_distance)
+            .flat_map(|x| [x, -x])
+            .map(|x| self.position.rotation * point![0.0, x] + start_position.translation.vector)
+        {
+            particles.insert(Particle {
+                transform: Transform {
+                    position: start_position,
+                    linear_velocity: vector![0.0, 0.0],
+                    angular_velocity: 0.0,
+                },
+                target_position: Some((target_position, 20.0)),
+                color: Color::from_hex(0x00ffff),
+                time_since_creation: 0.0,
+                maximum_lifetime: 2.0 / 3.0,
+                texture: GLITTER_TEXTURES[macroquad::rand::gen_range(0, GLITTER_TEXTURES.len())]
+                    .texture
+                    .clone(),
+                start: None,
+                size: vector![2, 2],
+            });
+        }
+    }
+
+    pub fn position_of_particle(&self, offset: f64) -> Isometry2<f64> {
+        let translation = self.position * point![offset, 0.0];
+
+        let rotation = self.position.rotation
+            * UnitComplex::new(macroquad::rand::gen_range(0, 3) as f64 / 4.0 * TAU);
+
+        Isometry2::from_parts(translation.into(), rotation)
     }
 
     pub fn should_delete(&self) -> bool {

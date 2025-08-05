@@ -21,12 +21,12 @@ impl Game {
     pub fn draw(&self) {
         self.turret.draw();
 
-        for (_, particle) in &self.particles {
-            particle.draw();
-        }
-
         for (_, enemy) in &self.enemies {
             enemy.draw();
+        }
+
+        for (_, particle) in &self.particles {
+            particle.draw();
         }
 
         for (_, projectile) in &self.projectiles {

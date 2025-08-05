@@ -12,6 +12,7 @@ use crate::{object::Transform, utils};
 #[derive(Clone, Debug)]
 pub struct Particle {
     pub transform: Transform,
+    pub target_position: Option<(Point2<f64>, f64)>,
 
     pub color: Color,
     pub time_since_creation: f64,
@@ -28,6 +29,14 @@ impl Particle {
         self.time_since_creation += dt;
 
         self.transform.tick(dt);
+
+        if let Some((target_position, decay_speed)) = self.target_position {
+            self.transform.position.translation.vector =
+                self.transform.position.translation.vector.lerp(
+                    &target_position.coords,
+                    utils::exp_decay(0.0, 1.0, decay_speed, dt),
+                );
+        }
     }
 
     pub fn draw(&self) {
