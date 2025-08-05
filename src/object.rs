@@ -38,10 +38,6 @@ impl Transform {
 }
 
 impl Object {
-    pub fn tick(&mut self, dt: f64) {
-        self.transform.tick(dt);
-    }
-
     pub fn draw(&self) {
         self.shape.draw_outline(self.position, 0.1, colors::MAGENTA);
     }
