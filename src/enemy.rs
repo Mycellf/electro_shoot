@@ -115,7 +115,7 @@ impl Enemy {
                 shape: kind.properties.shape,
                 transform: Transform {
                     position,
-                    linear_velocity: position.rotation * vector![kind.properties.speed, 0.0],
+                    linear_velocity: vector![0.0, 0.0], // managed each tick
                     angular_velocity: kind.properties.angular_velocity,
                 },
             },
