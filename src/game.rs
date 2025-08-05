@@ -1,11 +1,13 @@
+use macroquad::camera::Camera2D;
 use slotmap::{HopSlotMap, new_key_type};
 
-use crate::{enemy::Enemy, projectile::Projectile};
+use crate::{enemy::Enemy, projectile::Projectile, turret::Turret, utils};
 
 #[derive(Debug, Default)]
 pub struct Game {
     pub enemies: HopSlotMap<EnemyKey, Enemy>,
     pub projectiles: HopSlotMap<ProjectileKey, Projectile>,
+    pub turret: Turret,
 }
 
 new_key_type! {
@@ -15,6 +17,8 @@ new_key_type! {
 
 impl Game {
     pub fn draw(&self) {
+        self.turret.draw();
+
         for (_, enemy) in &self.enemies {
             enemy.draw();
         }
@@ -24,7 +28,13 @@ impl Game {
         }
     }
 
-    pub fn tick(&mut self, dt: f64) {
+    pub fn tick_input(&mut self, dt: f64) {
+        self.turret.input.tick(dt);
+    }
+
+    pub fn tick(&mut self, camera: &mut Camera2D, dt: f64) {
+        self.turret.tick(utils::mouse_position(camera), dt);
+
         self.projectiles.retain(|_, projectile| {
             projectile.tick(&mut self.enemies, dt);
             !projectile.should_delete()

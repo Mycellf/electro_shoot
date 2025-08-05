@@ -18,7 +18,7 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             piercing: true,
             speed: 15.0,
         },
-        firing_delay: 1.0,
+        shoot_cooldown: 1.0,
     },
     ProjectileKind {
         name: "Rapid",
@@ -28,7 +28,7 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             piercing: false,
             speed: 30.0,
         },
-        firing_delay: 1.0 / 3.0,
+        shoot_cooldown: 1.0 / 3.0,
     },
     ProjectileKind {
         name: "Slow",
@@ -38,7 +38,7 @@ pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
             piercing: true,
             speed: 7.5,
         },
-        firing_delay: 5.0 / 3.0,
+        shoot_cooldown: 5.0 / 3.0,
     },
 ];
 
@@ -61,7 +61,7 @@ pub struct ProjectileKind {
     pub name: &'static str,
     pub properties: ProjectileProperties,
 
-    pub firing_delay: f64,
+    pub shoot_cooldown: f64,
 }
 
 #[derive(Clone, Copy, Debug)]

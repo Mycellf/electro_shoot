@@ -9,16 +9,21 @@ use macroquad::{
     texture::{FilterMode, Image, Texture2D},
     window,
 };
-use nalgebra::Vector2;
+use nalgebra::{Point2, Vector2};
 
 #[must_use]
-pub fn vec2_to_f64(vector: Vec2) -> Vector2<f64> {
+pub fn vec2_to_vector2_f64(vector: Vec2) -> Vector2<f64> {
     <[f32; 2]>::from(vector).map(f64::from).into()
 }
 
 #[must_use]
-pub fn mouse_position(camera: &Camera2D) -> Vector2<f64> {
-    vec2_to_f64(camera.screen_to_world(input::mouse_position().into()))
+pub fn vec2_to_point2_f64(vector: Vec2) -> Point2<f64> {
+    <[f32; 2]>::from(vector).map(f64::from).into()
+}
+
+#[must_use]
+pub fn mouse_position(camera: &Camera2D) -> Point2<f64> {
+    vec2_to_point2_f64(camera.screen_to_world(input::mouse_position().into()))
 }
 
 pub fn update_camera_aspect_ratio(camera: &mut Camera2D) {
@@ -32,6 +37,42 @@ pub fn darken_color(color: Color, brightness: f64) -> Color {
         b: color.b * brightness as f32,
         a: color.a,
     }
+}
+
+pub fn brighten_color(color: Color, brightness: f64) -> Color {
+    Color {
+        r: color.r + brightness as f32,
+        g: color.g + brightness as f32,
+        b: color.b + brightness as f32,
+        a: color.a,
+    }
+}
+
+#[must_use]
+pub const fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
+
+#[must_use]
+pub const fn color_lerp(a: Color, b: Color, t: f32) -> Color {
+    Color {
+        r: lerp(a.r, b.r, t),
+        g: lerp(a.g, b.g, t),
+        b: lerp(a.b, b.b, t),
+        a: lerp(a.a, b.a, t),
+    }
+}
+
+/// CREDIT: Freya Holmér: <https://www.youtube.com/watch?v=LSNQuFEDOyQ>
+#[must_use]
+pub fn exp_decay(a: f64, b: f64, decay: f64, dt: f64) -> f64 {
+    b + (a - b) * (-decay * dt).exp()
+}
+
+/// CREDIT: Freya Holmér: <https://www.youtube.com/watch?v=LSNQuFEDOyQ>
+#[must_use]
+pub fn lerp_follow(a: f64, b: f64, t: f64, dt: f64) -> f64 {
+    b + (a - b) * t.powf(dt)
 }
 
 #[derive(Clone, Debug)]
@@ -58,7 +99,11 @@ impl Deref for TextureEntry {
     }
 }
 
-pub static TEXTURES: LazyLock<[TextureEntry; 5]> = LazyLock::new(|| {
+pub static TURRET_BASE_TEXTURE: LazyLock<TextureEntry> = LazyLock::new(|| {
+    TextureEntry::from_bytes(include_bytes!("../assets/turret/base.png")).unwrap()
+});
+
+pub static ENEMY_TEXTURES: LazyLock<[TextureEntry; 5]> = LazyLock::new(|| {
     [
         TextureEntry::from_bytes(include_bytes!("../assets/enemies/red_circle.png")).unwrap(),
         TextureEntry::from_bytes(include_bytes!("../assets/enemies/purple_circle.png")).unwrap(),

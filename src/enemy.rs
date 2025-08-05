@@ -13,7 +13,7 @@ use nalgebra::{Isometry2, UnitComplex, vector};
 use crate::{
     object::Object,
     shape::Shape,
-    utils::{self, TEXTURES, TextureEntry},
+    utils::{self, ENEMY_TEXTURES, TextureEntry},
 };
 
 pub static ENEMY_KINDS: LazyLock<[EnemyKind; 5]> = LazyLock::new(|| {
@@ -25,7 +25,7 @@ pub static ENEMY_KINDS: LazyLock<[EnemyKind; 5]> = LazyLock::new(|| {
                 speed: 3.0,
                 angular_velocity: 0.0,
                 maximum_health: 4,
-                texture: &TEXTURES[0],
+                texture: &ENEMY_TEXTURES[0],
             },
         },
         EnemyKind {
@@ -35,7 +35,7 @@ pub static ENEMY_KINDS: LazyLock<[EnemyKind; 5]> = LazyLock::new(|| {
                 speed: 9.0,
                 angular_velocity: 0.0,
                 maximum_health: 4,
-                texture: &TEXTURES[1],
+                texture: &ENEMY_TEXTURES[1],
             },
         },
         EnemyKind {
@@ -45,7 +45,7 @@ pub static ENEMY_KINDS: LazyLock<[EnemyKind; 5]> = LazyLock::new(|| {
                 speed: 12.0,
                 angular_velocity: 0.0,
                 maximum_health: 4,
-                texture: &TEXTURES[2],
+                texture: &ENEMY_TEXTURES[2],
             },
         },
         EnemyKind {
@@ -57,7 +57,7 @@ pub static ENEMY_KINDS: LazyLock<[EnemyKind; 5]> = LazyLock::new(|| {
                 speed: 3.0,
                 angular_velocity: -5.0 / 24.0 * TAU,
                 maximum_health: 8,
-                texture: &TEXTURES[3],
+                texture: &ENEMY_TEXTURES[3],
             },
         },
         EnemyKind {
@@ -69,7 +69,7 @@ pub static ENEMY_KINDS: LazyLock<[EnemyKind; 5]> = LazyLock::new(|| {
                 speed: 3.0,
                 angular_velocity: 1.0 / 6.0 * TAU,
                 maximum_health: 12,
-                texture: &TEXTURES[4],
+                texture: &ENEMY_TEXTURES[4],
             },
         },
     ]
