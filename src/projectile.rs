@@ -7,7 +7,12 @@ use macroquad::{
 use nalgebra::{Isometry2, UnitComplex, Vector2, vector};
 use slotmap::HopSlotMap;
 
-use crate::{enemy::Enemy, game::EnemyKey, object::Object, shape::Shape};
+use crate::{
+    enemy::Enemy,
+    game::EnemyKey,
+    object::{Object, Transform},
+    shape::Shape,
+};
 
 pub static PROJECTILE_KINDS: [ProjectileKind; 3] = [
     ProjectileKind {
@@ -90,9 +95,11 @@ impl Projectile {
                 shape: Shape::Rectangle {
                     half_size: kind.properties.size / 2.0,
                 },
-                position,
-                linear_velocity: [0.0; 2].into(), // managed each tick
-                angular_velocity: 0.0,
+                transform: Transform {
+                    position,
+                    linear_velocity: [0.0; 2].into(), // managed each tick
+                    angular_velocity: 0.0,
+                },
             },
             direction: position.rotation,
             properties: kind.properties,
@@ -122,7 +129,8 @@ impl Projectile {
         self.time_since_collision += dt;
 
         for (key, enemy) in &mut *enemies {
-            if !self.enemies_intersecting.contains(&key) && self.object.is_colliding(&enemy.object)
+            if !(self.enemies_intersecting.contains(&key) || self.enemies_colliding.contains(&key))
+                && self.object.is_colliding(&enemy.object)
             {
                 enemy.hit(self.properties.damage);
                 if !enemy.should_delete() {
@@ -139,11 +147,10 @@ impl Projectile {
                 !enemy.should_delete()
                     && self.object.shape.is_colliding(
                         &enemy.shape,
-                        self.object.offset_to(&enemy)
-                            * Isometry2::new(
-                                -vector![self.properties.distance_to_front() * 2.0, 0.0],
-                                0.0,
-                            ),
+                        Isometry2::new(
+                            -vector![self.properties.distance_to_front() * 2.0, 0.0],
+                            0.0,
+                        ) * self.object.offset_to(&enemy),
                     )
             })
         });
@@ -162,7 +169,7 @@ impl Projectile {
     }
 
     pub fn draw(&self) {
-        let opacity = if self.enemies_intersecting.is_empty() {
+        let opacity = if self.enemies_colliding.is_empty() {
             1.0
         } else {
             Self::COLLISION_OPACITY

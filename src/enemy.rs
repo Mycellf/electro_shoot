@@ -11,7 +11,7 @@ use macroquad::{
 use nalgebra::{Isometry2, UnitComplex, vector};
 
 use crate::{
-    object::Object,
+    object::{Object, Transform},
     shape::Shape,
     utils::{self, ENEMY_TEXTURES, TextureEntry},
 };
@@ -113,9 +113,11 @@ impl Enemy {
         Self {
             object: Object {
                 shape: kind.properties.shape,
-                position,
-                linear_velocity: position.rotation * vector![kind.properties.speed, 0.0],
-                angular_velocity: kind.properties.angular_velocity,
+                transform: Transform {
+                    position,
+                    linear_velocity: position.rotation * vector![kind.properties.speed, 0.0],
+                    angular_velocity: kind.properties.angular_velocity,
+                },
             },
             direction: position.rotation,
             properties: kind.properties,
