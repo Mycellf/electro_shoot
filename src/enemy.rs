@@ -206,24 +206,32 @@ impl Enemy {
 
                 for _ in 0..macroquad::rand::gen_range(1, 3) {
                     let rectangle_size = vector![
-                        macroquad::rand::gen_range(2, 5),
-                        macroquad::rand::gen_range(2, 5)
+                        macroquad::rand::gen_range(2, 6),
+                        macroquad::rand::gen_range(2, 6)
                     ];
 
-                    let rectangle_offset = vector![
+                    let mut rectangle_offset = vector![
                         macroquad::rand::gen_range(0, rectangle_size.x),
                         macroquad::rand::gen_range(0, rectangle_size.y),
                     ];
 
+                    if rectangle_offset.x > position.x {
+                        rectangle_offset.x = position.x;
+                    }
+                    if rectangle_offset.y > position.y {
+                        rectangle_offset.y = position.y;
+                    }
+
+                    if position.x - rectangle_offset.x + rectangle_size.x > size.x {
+                        rectangle_offset.x = rectangle_size.x;
+                    }
+                    if position.y - rectangle_offset.y + rectangle_size.y > size.y {
+                        rectangle_offset.y = rectangle_size.y;
+                    }
+
                     let bounding_box = BoundingBox {
-                        min: Vector2::from_fn(|i, _| {
-                            position[i].saturating_sub(rectangle_offset[i])
-                        })
-                        .into(),
-                        max: Vector2::from_fn(|i, _| {
-                            (position[i] + rectangle_size[i]).min(size[i]) - 1
-                        })
-                        .into(),
+                        min: position - rectangle_offset,
+                        max: position - rectangle_offset + rectangle_size - vector![1, 1],
                     };
 
                     for x in bounding_box.min.x..bounding_box.max.x + 1 {
@@ -292,7 +300,7 @@ impl Enemy {
                     transform: Transform {
                         position: Isometry2::from_parts(translation.into(), self.position.rotation),
                         linear_velocity: self.velocity_of_point(translation) - self.linear_velocity
-                            + (additional_velocity + hit_velocity * 0.1)
+                            + (additional_velocity + hit_velocity * 0.5)
                                 * macroquad::rand::gen_range(0.1, 1.0),
                         angular_velocity: self.angular_velocity,
                     },
