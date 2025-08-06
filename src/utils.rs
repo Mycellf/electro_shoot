@@ -67,6 +67,18 @@ pub fn brighten_color(color: Color, brightness: f64) -> Color {
     }
 }
 
+pub fn next_flickering_brightness(current_brightnes: f64, minimum_brightness: f64) -> f64 {
+    if minimum_brightness == 1.0 {
+        1.0
+    } else if minimum_brightness > 0.5 {
+        macroquad::rand::gen_range(minimum_brightness, (minimum_brightness + 0.75).min(1.0))
+    } else if (current_brightnes < 0.5) ^ (macroquad::rand::rand() & 0b11 == 0) {
+        macroquad::rand::gen_range(0.5, (minimum_brightness + 0.75).min(1.0))
+    } else {
+        macroquad::rand::gen_range(minimum_brightness, 0.5)
+    }
+}
+
 #[must_use]
 pub const fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t

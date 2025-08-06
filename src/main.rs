@@ -45,7 +45,7 @@ async fn main() {
 
     game.enemies.insert(Enemy::new(
         Isometry2::new(vector![25.0, 0.0], 0.5 * TAU),
-        &ENEMY_KINDS[3],
+        &ENEMY_KINDS[4],
     ));
 
     loop {

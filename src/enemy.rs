@@ -138,16 +138,8 @@ impl Enemy {
 
         if self.brightness_update_time > 1.0 {
             self.brightness_update_time %= 1.0;
-            let brightness = self.speed_multiplier();
-            self.brightness = if brightness == 1.0 {
-                1.0
-            } else if brightness > 0.5 {
-                macroquad::rand::gen_range(brightness, (brightness + 0.75).min(1.0))
-            } else if (self.brightness < 0.5) ^ (macroquad::rand::rand() & 0b11 == 0) {
-                macroquad::rand::gen_range(0.5, (brightness + 0.75).min(1.0))
-            } else {
-                macroquad::rand::gen_range(brightness, 0.5)
-            };
+            self.brightness =
+                utils::next_flickering_brightness(self.brightness, self.speed_multiplier());
         }
 
         self.time_since_hit += dt;

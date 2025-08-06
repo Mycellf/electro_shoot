@@ -113,6 +113,8 @@ impl Projectile {
     pub const COLLISION_SPEED_MULTIPLIER: f64 = 0.25;
     pub const COLLISION_OPACITY: f64 = 0.75;
 
+    pub const PARTICLE_JITTER: usize = 3;
+
     pub fn new(position: Isometry2<f64>, kind: &ProjectileKind) -> Self {
         Self {
             object: Object {
@@ -132,10 +134,8 @@ impl Projectile {
             enemies_hit: Vec::new(),
             time_since_collision: f64::INFINITY,
             time_since_exit: f64::INFINITY,
-            distance_since_particle: macroquad::rand::gen_range(
-                0.0,
-                kind.properties.particle_distance,
-            ),
+            distance_since_particle: kind.properties.particle_distance
+                - macroquad::rand::gen_range(0, Self::PARTICLE_JITTER) as f64 * 0.1,
         }
     }
 
