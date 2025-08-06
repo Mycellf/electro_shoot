@@ -33,6 +33,8 @@ fn config() -> Conf {
 
 #[macroquad::main(config)]
 async fn main() {
+    macroquad::rand::srand(1234980);
+
     let mut fullscreen = START_IN_FULLSCREEN;
 
     let screen_height = 36.0;
