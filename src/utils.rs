@@ -9,7 +9,7 @@ use macroquad::{
     texture::{FilterMode, Image, Texture2D},
     window,
 };
-use nalgebra::{Point2, Vector2};
+use nalgebra::{Point2, Vector2, vector};
 
 use crate::shape::Shape;
 
@@ -120,6 +120,10 @@ impl TextureEntry {
 
         Ok(Self { image, texture })
     }
+
+    pub fn pixel_size(&self) -> Vector2<usize> {
+        vector![self.image.width(), self.image.height()]
+    }
 }
 
 impl Deref for TextureEntry {
@@ -154,3 +158,33 @@ pub static GLITTER_TEXTURES: LazyLock<[TextureEntry; 2]> = LazyLock::new(|| {
 pub static ABSORB_TEXTURE: LazyLock<TextureEntry> = LazyLock::new(|| {
     TextureEntry::from_bytes(include_bytes!("../assets/particles/absorb.png")).unwrap()
 });
+
+#[derive(Clone, Copy, Debug)]
+pub struct BoundingBox {
+    pub min: Point2<usize>,
+    pub max: Point2<usize>,
+}
+
+impl BoundingBox {
+    pub fn intersects(&self, other: &BoundingBox) -> bool {
+        self.min.x <= other.max.x
+            && self.min.y <= other.max.y
+            && other.min.x <= self.max.x
+            && other.min.y <= self.max.y
+    }
+
+    pub fn center(&self) -> Point2<f64> {
+        (self.min.map(|x| x as f64) + self.max.map(|x| (x + 1) as f64).coords) / 2.0
+    }
+
+    pub fn size(&self) -> Vector2<usize> {
+        self.max - self.min + vector![1, 1]
+    }
+
+    pub fn combine(self, other: BoundingBox) -> BoundingBox {
+        BoundingBox {
+            min: Vector2::from_fn(|i, _| self.min[i].min(other.min[i])).into(),
+            max: Vector2::from_fn(|i, _| self.max[i].max(other.max[i])).into(),
+        }
+    }
+}

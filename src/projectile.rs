@@ -150,11 +150,13 @@ impl Projectile {
         }
 
         // Motion
-        let speed = if self.enemies_colliding.is_empty() {
-            self.properties.speed
+        let speed_multiplier = if self.enemies_colliding.is_empty() {
+            1.0
         } else {
-            self.properties.speed * Self::COLLISION_SPEED_MULTIPLIER
+            Self::COLLISION_SPEED_MULTIPLIER
         };
+
+        let speed = self.properties.speed * speed_multiplier;
 
         self.object.linear_velocity = self.direction * vector![speed, 0.0];
 
@@ -193,10 +195,18 @@ impl Projectile {
                 && self.object.is_colliding(&enemy.object)
             {
                 enemy.hit(self.properties.damage);
-                if !enemy.should_delete() {
+                if enemy.should_delete() {
+                    enemy.explode(
+                        self.position.translation
+                            * point![self.properties.distance_to_front(), 0.0],
+                        self.linear_velocity / speed_multiplier,
+                        particles,
+                    );
+                } else {
                     self.enemies_colliding.push(key);
                     self.enemies_intersecting.push(key);
                 }
+
                 self.add_hit_particles(particles);
                 self.enemies_hit.push(key);
                 self.time_since_collision = 0.0;

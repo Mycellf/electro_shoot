@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use macroquad::{color::colors, shapes};
-use nalgebra::{Isometry2, UnitComplex, Vector2};
+use nalgebra::{Isometry2, Point2, UnitComplex, Vector2, vector};
 
 use crate::shape::Shape;
 
@@ -55,6 +55,14 @@ impl Object {
     #[must_use]
     pub fn linear_offset_to(&self, other: &Self) -> Vector2<f64> {
         -self.position.translation.vector + other.position.translation.vector
+    }
+
+    #[must_use]
+    pub fn velocity_of_point(&self, point: Point2<f64>) -> Vector2<f64> {
+        let offset = self.position.inverse_transform_point(&point).coords;
+        let perpendicular = vector![-offset.y, offset.x];
+
+        self.linear_velocity + perpendicular * self.angular_velocity
     }
 }
 
