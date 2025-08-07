@@ -1,6 +1,7 @@
 use std::{
     f64::consts::TAU,
-    ops::{Deref, DerefMut},
+    num::NonZeroUsize,
+    ops::{Deref, DerefMut, Range},
     sync::LazyLock,
 };
 
@@ -173,6 +174,9 @@ impl Enemy {
         hit_velocity: Vector2<f64>,
         particles: &mut HopSlotMap<ParticleKey, Particle>,
     ) {
+        const RECTANGLE_WIDTH: Range<usize> = 4..8;
+        const RECTANGLE_HEIGHT: Range<usize> = 4..8;
+
         let size = self.properties.texture.pixel_size();
 
         let mut num_valid_pixels = (self.properties.texture.image)
@@ -181,13 +185,13 @@ impl Enemy {
             .filter(|&&[_, _, _, opacity]| opacity > 0)
             .count();
 
-        let mut groups = DMatrix::from_element(size.x, size.y, None);
-        let mut bounding_boxes = SlotMap::new();
+        let mut group_ids = DMatrix::from_element(size.x, size.y, None);
+        let mut next_group_id = NonZeroUsize::new(1).unwrap();
 
         while num_valid_pixels > 0 {
             let mut count = macroquad::rand::gen_range(1, num_valid_pixels);
 
-            let index = groups
+            let index = group_ids
                 .iter()
                 .zip(self.properties.texture.image.get_image_data())
                 .take_while(|(group, [_, _, _, opacity])| {
@@ -201,65 +205,154 @@ impl Enemy {
 
             let position = point![index % size.x, index / size.x];
 
-            bounding_boxes.insert_with_key(|group| {
-                let mut full_bounding_box = None;
+            for _ in 0..macroquad::rand::gen_range(1, 3) {
+                let rectangle_size = vector![
+                    macroquad::rand::gen_range(RECTANGLE_WIDTH.start, RECTANGLE_WIDTH.end),
+                    macroquad::rand::gen_range(RECTANGLE_HEIGHT.start, RECTANGLE_HEIGHT.end),
+                ];
 
-                for _ in 0..macroquad::rand::gen_range(1, 3) {
-                    let rectangle_size = vector![
-                        macroquad::rand::gen_range(2, 6),
-                        macroquad::rand::gen_range(2, 6)
-                    ];
+                let mut rectangle_offset = vector![
+                    macroquad::rand::gen_range(0, rectangle_size.x),
+                    macroquad::rand::gen_range(0, rectangle_size.y),
+                ];
 
-                    let mut rectangle_offset = vector![
-                        macroquad::rand::gen_range(0, rectangle_size.x),
-                        macroquad::rand::gen_range(0, rectangle_size.y),
-                    ];
-
-                    if rectangle_offset.x > position.x {
-                        rectangle_offset.x = position.x;
-                    }
-                    if rectangle_offset.y > position.y {
-                        rectangle_offset.y = position.y;
-                    }
-
-                    if position.x - rectangle_offset.x + rectangle_size.x > size.x {
-                        rectangle_offset.x = rectangle_size.x;
-                    }
-                    if position.y - rectangle_offset.y + rectangle_size.y > size.y {
-                        rectangle_offset.y = rectangle_size.y;
-                    }
-
-                    let bounding_box = BoundingBox {
-                        min: position - rectangle_offset,
-                        max: position - rectangle_offset + rectangle_size - vector![1, 1],
-                    };
-
-                    for x in bounding_box.min.x..bounding_box.max.x + 1 {
-                        for y in bounding_box.min.y..bounding_box.max.y + 1 {
-                            if groups[(x, y)].is_none()
-                                && (self.properties.texture.image)
-                                    .get_pixel(x as u32, y as u32)
-                                    .a
-                                    > f32::EPSILON
-                            {
-                                groups[(x, y)] = Some(group);
-                                num_valid_pixels -= 1;
-                            }
-                        }
-                    }
-
-                    full_bounding_box = full_bounding_box
-                        .map_or(Some(bounding_box), |full| Some(bounding_box.combine(full)));
+                if rectangle_offset.x > position.x {
+                    rectangle_offset.x = position.x;
+                }
+                if rectangle_offset.y > position.y {
+                    rectangle_offset.y = position.y;
                 }
 
-                full_bounding_box.unwrap()
-            });
+                if position.x - rectangle_offset.x + rectangle_size.x > size.x {
+                    rectangle_offset.x = rectangle_size.x;
+                }
+                if position.y - rectangle_offset.y + rectangle_size.y > size.y {
+                    rectangle_offset.y = rectangle_size.y;
+                }
+
+                let bounding_box = BoundingBox {
+                    min: position - rectangle_offset,
+                    max: position - rectangle_offset + rectangle_size - vector![1, 1],
+                };
+
+                for x in bounding_box.min.x..bounding_box.max.x + 1 {
+                    for y in bounding_box.min.y..bounding_box.max.y + 1 {
+                        if group_ids[(x, y)].is_none()
+                            && (self.properties.texture.image)
+                                .get_pixel(x as u32, y as u32)
+                                .a
+                                > f32::EPSILON
+                        {
+                            group_ids[(x, y)] = Some(next_group_id);
+                            num_valid_pixels -= 1;
+                        }
+                    }
+                }
+            }
+
+            next_group_id = NonZeroUsize::new(next_group_id.get().checked_add(1).unwrap()).unwrap();
+        }
+
+        let mut group_sizes = DMatrix::from_element(size.x, size.y, None);
+
+        for x in 0..size.x {
+            for y in 0..size.y {
+                if group_sizes[(x, y)].is_some() {
+                    continue;
+                }
+
+                let start = point![x, y];
+                let Some(group_id) = group_ids[(x, y)] else {
+                    continue;
+                };
+
+                let mut stack = vec![start];
+                let mut indecies = vec![start];
+
+                while let Some(index) = stack.pop() {
+                    let Some(None) = group_sizes.get((index.x, index.y)) else {
+                        continue;
+                    };
+
+                    if Some(group_id) != group_ids[(index.x, index.y)] {
+                        continue;
+                    }
+
+                    group_sizes[(index.x, index.y)] = Some(0);
+                    indecies.push(index);
+
+                    // If the value overflows, it will be rejected next iteration as it will
+                    // surely be out of bounds
+                    stack.push(point![index.x.wrapping_sub(1), index.y]);
+                    stack.push(point![index.x, index.y.wrapping_sub(1)]);
+
+                    stack.push(point![index.x + 1, index.y]);
+                    stack.push(point![index.x, index.y + 1]);
+                }
+
+                let group_size = indecies.len();
+
+                for index in indecies {
+                    group_sizes[(index.x, index.y)] = Some(group_size);
+                }
+            }
+        }
+
+        let mut bounding_boxes = SlotMap::new();
+        let mut group_keys = DMatrix::from_element(size.x, size.y, None);
+
+        for x in 0..size.x {
+            for y in 0..size.y {
+                if group_keys[(x, y)].is_some() {
+                    continue;
+                }
+
+                let Some(group_id) = group_ids[(x, y)] else {
+                    continue;
+                };
+
+                bounding_boxes.insert_with_key(|group| {
+                    let start = point![x, y];
+                    let group_size = group_sizes[(x, y)].unwrap();
+
+                    let mut stack = vec![start];
+                    let mut bounding_box = BoundingBox {
+                        min: start,
+                        max: start,
+                    };
+
+                    while let Some(index) = stack.pop() {
+                        let Some(None) = group_keys.get((index.x, index.y)) else {
+                            continue;
+                        };
+
+                        if Some(group_id) != group_ids[(index.x, index.y)] {
+                            continue;
+                        }
+
+                        group_keys[(index.x, index.y)] = Some(group);
+                        bounding_box = bounding_box.expand_to_fit(index);
+
+                        // If the value overflows, it will be rejected next iteration as it will
+                        // surely be out of bounds
+                        stack.push(point![index.x.wrapping_sub(1), index.y]);
+                        stack.push(point![index.x, index.y.wrapping_sub(1)]);
+
+                        stack.push(point![index.x + 1, index.y]);
+                        stack.push(point![index.x, index.y + 1]);
+                    }
+
+                    (bounding_box, group_size)
+                });
+            }
         }
 
         while let Some(key) = bounding_boxes.keys().next() {
-            let mut texture_bounding_boxes = vec![(key, bounding_boxes.remove(key).unwrap())];
+            let (bounding_box, _) = bounding_boxes.remove(key).unwrap();
 
-            bounding_boxes.retain(|group, bounding_box| {
+            let mut texture_bounding_boxes = vec![(key, bounding_box)];
+
+            bounding_boxes.retain(|group, (bounding_box, _)| {
                 if texture_bounding_boxes
                     .iter()
                     .any(|(_, other)| bounding_box.intersects(other))
@@ -278,7 +371,7 @@ impl Enemy {
                     for y in bounding_box.min.y..bounding_box.max.y + 1 {
                         let i = x + y * size.x;
 
-                        if groups[(x, y)] == Some(group) {
+                        if group_keys[(x, y)] == Some(group) {
                             image.get_image_data_mut()[i] =
                                 self.properties.texture.image.get_image_data()[i];
                         }
@@ -294,14 +387,17 @@ impl Enemy {
 
                 let translation = self.position * offset;
 
-                let additional_velocity = (translation - hit_position).normalize();
+                let displacement = translation - hit_position;
+                let distance_squared = displacement.magnitude_squared().clamp(0.5, 5.0);
+
+                let additional_velocity = displacement * 2.0 / distance_squared
+                    + hit_velocity * 0.5 / distance_squared.sqrt();
 
                 particles.insert(Particle {
                     transform: Transform {
                         position: Isometry2::from_parts(translation.into(), self.position.rotation),
                         linear_velocity: self.velocity_of_point(translation) - self.linear_velocity
-                            + (additional_velocity + hit_velocity * 0.5)
-                                * macroquad::rand::gen_range(0.1, 1.0),
+                            + additional_velocity * macroquad::rand::gen_range(0.5, 1.25),
                         angular_velocity: self.angular_velocity,
                     },
                     target_position: None,

@@ -166,6 +166,7 @@ pub struct BoundingBox {
 }
 
 impl BoundingBox {
+    #[must_use]
     pub fn intersects(&self, other: &BoundingBox) -> bool {
         self.min.x <= other.max.x
             && self.min.y <= other.max.y
@@ -173,18 +174,29 @@ impl BoundingBox {
             && other.min.y <= self.max.y
     }
 
+    #[must_use]
     pub fn center(&self) -> Point2<f64> {
         (self.min.map(|x| x as f64) + self.max.map(|x| (x + 1) as f64).coords) / 2.0
     }
 
+    #[must_use]
     pub fn size(&self) -> Vector2<usize> {
         self.max - self.min + vector![1, 1]
     }
 
+    #[must_use]
     pub fn combine(self, other: BoundingBox) -> BoundingBox {
         BoundingBox {
             min: Vector2::from_fn(|i, _| self.min[i].min(other.min[i])).into(),
             max: Vector2::from_fn(|i, _| self.max[i].max(other.max[i])).into(),
+        }
+    }
+
+    #[must_use]
+    pub fn expand_to_fit(self, point: Point2<usize>) -> BoundingBox {
+        BoundingBox {
+            min: Vector2::from_fn(|i, _| self.min[i].min(point[i])).into(),
+            max: Vector2::from_fn(|i, _| self.max[i].max(point[i])).into(),
         }
     }
 }
